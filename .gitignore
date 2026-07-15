@@ -1,0 +1,23 @@
+# Python
+venv/
+__pycache__/
+*.pyc
+.env
+
+# Java / Spring Boot
+target/
+*.class
+.mtj.tmp/
+*.jar
+*.war
+*.ear
+*.zip
+*.tar.gz
+
+# IDEs
+.idea/
+.vscode/
+*.iml
+
+# OS
+.DS_Store
