@@ -3,6 +3,7 @@ package com.sentix.quant.repository;
 import com.sentix.quant.entity.FinancialRecordEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 
+import java.util.List;
 import java.util.Optional;
 
 public interface FinancialRecordRepository extends JpaRepository<FinancialRecordEntity, Long> {
@@ -18,4 +19,12 @@ public interface FinancialRecordRepository extends JpaRepository<FinancialRecord
      */
     Optional<FinancialRecordEntity> findByEquityIdAndFiscalYearAndFiscalQuarter(
             Long equityId, Integer fiscalYear, Integer fiscalQuarter);
+
+    /**
+     * Derived query to retrieve all financial records belonging to a given equity.
+     *
+     * @param equityId the owning equity's database ID
+     * @return list of matching FinancialRecordEntity — never null, may be empty
+     */
+    List<FinancialRecordEntity> findByEquityId(Long equityId);
 }

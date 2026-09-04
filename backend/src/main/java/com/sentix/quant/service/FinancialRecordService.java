@@ -64,6 +64,20 @@ public class FinancialRecordService {
                 .collect(Collectors.toList());
     }
 
+    /**
+     * Retrieves all financial records for a specific equity by its database ID.
+     *
+     * @param equityId the owning equity's database ID
+     * @return list of FinancialRecordDTO — never null, may be empty
+     */
+    @Transactional(readOnly = true)
+    public List<FinancialRecordDTO> getRecordsByEquityId(Long equityId) {
+        return financialRecordRepository.findByEquityId(equityId)
+                .stream()
+                .map(this::mapEntityToDto)
+                .collect(Collectors.toList());
+    }
+
     // ----------------------------------------------------------------
     // Conversion Helpers
     // ----------------------------------------------------------------

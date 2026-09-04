@@ -1,0 +1,161 @@
+<!-- ============================================================
+     Sentix Quant Mesh — Unified Analysis Terminal
+     ============================================================ -->
+
+<div class="terminal-shell">
+
+  <!-- ── Header Bar ─────────────────────────────────────────── -->
+  <header class="header-bar">
+    <div class="header-left">
+      <span class="logo-glyph">◆</span>
+      <h1 class="logo-text">SENTIX<span class="logo-accent">QUANT</span></h1>
+    </div>
+    <div class="header-tag">UNIFIED ANALYSIS TERMINAL v1.0</div>
+  </header>
+
+  <!-- ── Ticker Input Strip ─────────────────────────────────── -->
+  <section class="input-strip">
+    <div class="input-group">
+      <label class="input-label" for="tickerInput">TICKER / COMPANY NAME</label>
+      <div class="input-row">
+        <input
+          id="tickerInput"
+          class="ticker-input"
+          type="text"
+          [(ngModel)]="tickerInput"
+          (keydown.enter)="executeAnalysis()"
+          placeholder="e.g. AAPL, Alphabet, JPMorgan"
+          maxlength="60"
+          autocomplete="off"
+          spellcheck="false" />
+        <button
+          id="executeBtn"
+          class="execute-btn"
+          (click)="executeAnalysis()"
+          [disabled]="isLoading">
+          <span *ngIf="!isLoading">EXECUTE</span>
+          <span *ngIf="isLoading" class="spinner"></span>
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Error Banner ───────────────────────────────────────── -->
+  <div class="error-banner" *ngIf="errorMessage">
+    <span class="error-icon">⚠</span>
+    <span class="error-text">{{ errorMessage }}</span>
+  </div>
+
+  <!-- ── Loading State ──────────────────────────────────────── -->
+  <div class="loading-overlay" *ngIf="isLoading">
+    <div class="pulse-ring"></div>
+    <span class="loading-text">FETCHING ANALYSIS DATA...</span>
+  </div>
+
+  <!-- ── Results Grid ───────────────────────────────────────── -->
+  <div class="results-grid" *ngIf="analysisData && !isLoading">
+
+    <!-- ── Panel 1: Dynamic Valuation ────────────────────────── -->
+    <section class="panel valuation-panel" id="valuationPanel">
+      <div class="panel-header">
+        <span class="panel-icon">◈</span>
+        <h2 class="panel-title">FUNDAMENTAL VALUATION</h2>
+        <span class="panel-badge" *ngIf="valuationBadge">
+          {{ valuationBadge }}
+        </span>
+      </div>
+      <p class="panel-subtitle">Deterministic Intrinsic Valuation (DCF / Sector Comparable Model)</p>
+
+      <!-- No data state -->
+      <div class="no-data" *ngIf="valuationMetrics.length === 0">
+        <span class="no-data-icon">∅</span>
+        <span>No fundamental data available for this entity.</span>
+      </div>
+
+      <!-- Dynamic Metrics Grid -->
+      <div class="metrics-grid" *ngIf="valuationMetrics.length > 0">
+        <div
+          class="metric-cell"
+          *ngFor="let m of valuationMetrics; let last = last"
+          [class.full-width]="last && valuationMetrics.length % 2 !== 0">
+          <span class="metric-label">{{ m.label }}</span>
+          <span class="metric-value" [class.accent]="m.highlight">{{ m.value }}</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── Panel 2: ML Prediction ───────────────────────────── -->
+    <section class="panel ml-panel" id="mlPanel">
+      <div class="panel-header">
+        <span class="panel-icon">◉</span>
+        <h2 class="panel-title">ML PREDICTION</h2>
+        <span class="panel-badge">XGBOOST α</span>
+      </div>
+
+      <div class="ml-content" *ngIf="analysisData.mlPrediction">
+
+        <!-- Ticker Display -->
+        <div class="ml-ticker-display">
+          <span class="ml-ticker-label">ANALYZING</span>
+          <span class="ml-ticker-value">{{ analysisData.mlPrediction.ticker }}</span>
+        </div>
+
+        <!-- Verdict -->
+        <div class="verdict-container">
+          <span class="verdict-label">PREDICTION VERDICT</span>
+          <div class="verdict-display" [ngClass]="getPredictionClass(analysisData.mlPrediction.outperform_prediction)">
+            {{ getPredictionLabel(analysisData.mlPrediction.outperform_prediction) }}
+          </div>
+        </div>
+
+        <!-- Confidence Gauge -->
+        <div class="confidence-container">
+          <span class="confidence-label">CONFIDENCE SCORE</span>
+          <div class="gauge-track">
+            <div
+              class="gauge-fill"
+              [ngClass]="getPredictionClass(analysisData.mlPrediction.outperform_prediction)"
+              [style.width.%]="(analysisData.mlPrediction.confidence_score || 0) * 100">
+            </div>
+          </div>
+          <span class="confidence-value" [ngClass]="getPredictionClass(analysisData.mlPrediction.outperform_prediction)">
+            {{ formatPercent(analysisData.mlPrediction.confidence_score) }}
+          </span>
+          <p class="panel-micro-copy">Probability of statistically significant alpha generation over a 12-month horizon.</p>
+        </div>
+
+        <!-- Raw Signal -->
+        <div class="raw-signal">
+          <div class="signal-row">
+            <span class="signal-label">RAW SIGNAL CODE</span>
+            <span class="signal-value">{{ analysisData.mlPrediction.outperform_prediction }}</span>
+          </div>
+          <p class="panel-micro-copy">Signal 1 = Outperform (Long bias) | Signal 0 = Neutral / Underperform.</p>
+          <div class="signal-row">
+            <span class="signal-label">RAW CONFIDENCE</span>
+            <span class="signal-value">{{ (analysisData.mlPrediction.confidence_score || 0) | number:'1.6-6' }}</span>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- No ML data -->
+      <div class="no-data" *ngIf="!analysisData.mlPrediction">
+        <span class="no-data-icon">∅</span>
+        <span>ML prediction data unavailable.</span>
+      </div>
+
+    </section>
+
+  </div>
+
+  <!-- ── Footer ─────────────────────────────────────────────── -->
+  <footer class="footer-bar">
+    <span>SENTIX QUANT MESH © 2026</span>
+    <span class="footer-sep">|</span>
+    <span>BACKEND: localhost:8080</span>
+    <span class="footer-sep">|</span>
+    <span>ML ENGINE: localhost:8000</span>
+  </footer>
+
+</div>

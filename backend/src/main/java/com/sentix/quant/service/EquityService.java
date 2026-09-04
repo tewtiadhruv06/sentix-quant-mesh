@@ -8,6 +8,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -15,9 +17,11 @@ import java.util.stream.Collectors;
 public class EquityService {
 
     private final EquityRepository equityRepository;
+    private final FmpDataService fmpDataService;
 
-    public EquityService(EquityRepository equityRepository) {
+    public EquityService(EquityRepository equityRepository, FmpDataService fmpDataService) {
         this.equityRepository = equityRepository;
+        this.fmpDataService = fmpDataService;
     }
 
     // ----------------------------------------------------------------
@@ -34,9 +38,12 @@ public class EquityService {
      * @throws IllegalStateException if a record with the same ticker already exists
      */
     public EquityDTO registerEquity(EquityDTO dto) {
-        equityRepository.findByTicker(dto.getTicker()).ifPresent(existing -> {
+        String normalizedTicker = normalizeTicker(dto.getTicker());
+        dto.setTicker(normalizedTicker);
+
+        equityRepository.findByTicker(normalizedTicker).ifPresent(existing -> {
             throw new IllegalStateException(
-                    "Equity with ticker [" + dto.getTicker() + "] already exists. " +
+                    "Equity with ticker [" + normalizedTicker + "] already exists. " +
                     "Duplicate registrations are not permitted."
             );
         });
@@ -47,6 +54,22 @@ public class EquityService {
 
         EquityEntity saved = equityRepository.save(entity);
         return mapEntityToDto(saved);
+    }
+
+    @Transactional(readOnly = true)
+    public String resolveTickerSymbol(String rawSearch) {
+        String trimmed = rawSearch == null ? "" : rawSearch.trim();
+        String normalizedInput = normalizeTicker(trimmed);
+
+        if (!normalizedInput.isBlank()) {
+            Optional<EquityEntity> exactMatch = equityRepository.findByTicker(normalizedInput);
+            if (exactMatch.isPresent()) {
+                return exactMatch.get().getTicker().toUpperCase();
+            }
+        }
+
+        String resolved = fmpDataService.searchTicker(trimmed);
+        return resolved == null || resolved.isBlank() ? normalizedInput : resolved.toUpperCase();
     }
 
     /**
@@ -60,6 +83,13 @@ public class EquityService {
                 .stream()
                 .map(this::mapEntityToDto)
                 .collect(Collectors.toList());
+    }
+
+    private String normalizeTicker(String rawTicker) {
+        if (rawTicker == null) {
+            return "";
+        }
+        return rawTicker.trim().toUpperCase();
     }
 
     // ----------------------------------------------------------------
